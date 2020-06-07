@@ -10,8 +10,8 @@ import pandas as pd
 import os
 
 #Move to the directory
-os.chdir('C:/Users/travm/Desktop/FantasyFootball_Analysis')
-
+#os.chdir('C:/Users/travm/Desktop/FantasyFootball_Analysis') #Desktop
+os.chdir('/users/admin/blog_data/FantasyFootball2020/FantasyFootball')
 #Open the file
 NFL2019playbyplay = pd.read_csv('2019playBYplay.csv')
 
@@ -75,7 +75,7 @@ NFL2019pbpQBsorted = NFL2019pbpQB.sort_values(by=['GameId','QBnames','Quarter','
 
     
 
-def pointsPerPlay(playType,tdCol,intCol,yardCol):
+def pointsPerPlay(playType,tdCol,intCol,yardCol,fumbCol,possesionCol):
     #Step 1 determine if pass,rush or scramble
     
     #Passing Situation only 3 scenarios Complete, TD, Interception
@@ -87,11 +87,49 @@ def pointsPerPlay(playType,tdCol,intCol,yardCol):
             return yardCol/25.0
         elif intCol == 1:
             return -1.0
-    #elif playType == 'RUSH' or playType =='SCRAMBLE' or playType =='QB KNEEL':
-        #if(fumbCol)
-    elif playType == 'FUMBLES':
+    elif playType == 'RUSH' or playType =='SCRAMBLE' or playType =='QB KNEEL':
+        if fumbCol == 1 and possesionCol == 1:
+            return yardCol/10.0 - 2.0
+        elif fumbCol ==1 and possesionCol == 0:
+            return yardCol/10.0 - 1.0
+        else:
+            if tdCol == 1:
+                return yardCol/10.0 + 6.0
+            elif tdCol == 0:
+                return yardCol/10.0
+    elif playType == 'FUMBLES' and possesionCol == 1:
+        return yardCol/10.0 - 2.0
+    elif playType == 'FUMBLES' and possesionCol == 0:
+        return yardCol/10.0 - 1.0
         
 
     
-NFL2019pbpQBsorted['FntsyPts_Play'] = NFL2019pbpQBsorted.apply(lambda x: pointsPerPlay(x.PlayType,x.IsTouchdown,x.IsInterception,x.Yards),axis=1)
+NFL2019pbpQBsorted['FntsyPts_Play'] = NFL2019pbpQBsorted.apply(lambda x: pointsPerPlay(x.PlayType,x.IsTouchdown,x.IsInterception,x.Yards,x.IsFumble,x.changeINpossesion),axis=1)
+
+
+NFL2019pbpQBsorted.to_csv('FntsyQBanalysis.csv')
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+%matplotlib qt
+
+#By game by QB
+aRodgers2019 = NFL2019pbpQBsorted[NFL2019pbpQBsorted.QBnames == 'A.RODGERS']
+
+sns.boxplot(y='FntsyPts_Play',x='GameId'
+            ,data = aRodgers2019,
+            palette = 'colorblind',
+            hue='GameId')
+plt.show()
+
+bplot1 = sns.stripplot(y='FntsyPts_Play',x='GameId',
+                       data = aRodgers2019,
+                       jitter = True,
+                       marker = 'o',
+                       alpha = 0.5,
+                       dodge = True,
+                       hue = 'Formation')
+
+
 
